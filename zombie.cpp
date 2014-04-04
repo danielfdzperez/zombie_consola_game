@@ -6,6 +6,7 @@
 
 #define EXIT 27
 #define NENEMIES 5
+enum TSide {left, top, right, bottom};
 struct TCharacter{
     int moviment;
     int live;
@@ -13,19 +14,39 @@ struct TCharacter{
     int posy;
     char look;
     bool is_moving;
+    int move;
 };
 
 void enemies_spawn(struct TCharacter enemy[], int *enemy_index){
+    switch(rand() % 4){
+	case left:
+		if(!enemy[*enemy_index].is_moving){
+		    enemy[*enemy_index].posy = rand() % LINES;
+		    enemy[*enemy_index].posx = 0;
+		}
+	    break;
+	case top:
+		if(!enemy[*enemy_index].is_moving){
+		    enemy[*enemy_index].posy = 0;
+		    enemy[*enemy_index].posx = rand() % COLS;
+		}
+	    break;
+	case right:
+		if(!enemy[*enemy_index].is_moving){
+		    enemy[*enemy_index].posy = rand() % LINES;
+		    enemy[*enemy_index].posx = COLS-20;
+		}
+	    break;
+	case bottom:
+		if(!enemy[*enemy_index].is_moving){
+		    enemy[*enemy_index].posy = LINES-1;
+		    enemy[*enemy_index].posx = rand() % COLS;
+		}
+	    break;
+    }
 
-    //if(rand() % 100 == 37)
-    if(*enemy_index < NENEMIES)
-	if(!enemy[*enemy_index].is_moving){
-	    enemy[*enemy_index].look = 'M';
-	    enemy[*enemy_index].posy = enemy[*enemy_index].posx = 20+ rand() % 5;
-	    enemy[*enemy_index].is_moving = true;
-	    (*enemy_index) ++;
-	}
-
+    enemy[*enemy_index].is_moving = true;
+    (*enemy_index) ++;
 }
 
 /*Move player*/
@@ -61,12 +82,9 @@ void enemies_moviment(struct TCharacter enemy[NENEMIES], int *enemy_index){
     for(int move=0; move<NENEMIES; move++){
 	if(enemy[move].posx + 1 == COLS){
 	    enemy[move].is_moving = false;
-	    (*enemy_index) --;
 	}
 	enemy[move].posx += 1;
     }
-
-
 }
 
 void print_game(struct TCharacter player, struct TCharacter enemy[NENEMIES], int enemy_index){
@@ -88,15 +106,19 @@ void loop_game(){
     player.look = 'P';
     player.posy = player.posx = 10;
 
-    for(int i = 0; i < NENEMIES; i++)
+    for(int i = 0; i < NENEMIES; i++){
 	enemy[i].is_moving = false;
+	enemy[i].look = 'M';
+    }
+
 
     enemy_index = 0;
 
     do{
-	timeout ( 200 );
+	timeout ( 300 );
 	print_game(player, enemy, enemy_index);
-	enemies_spawn(enemy, &enemy_index);
+	if(enemy_index < NENEMIES )
+	    enemies_spawn(enemy, &enemy_index);
 	player.moviment = getch();
 	player_moviment(&player);
 	enemies_moviment(enemy, &enemy_index);
