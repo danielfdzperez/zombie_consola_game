@@ -7,6 +7,7 @@
 #define EXIT 27
 #define NENEMIES 100
 #define SPACE 32
+#define VEL 100
 enum TSide {left, top, right, bottom};
 
 struct TPosition{
@@ -14,10 +15,10 @@ struct TPosition{
     int y;
 };
 
-struct TGun{
+struct TWeapon{
     struct TPosition pos;
     bool is_moving;
-
+    int live;
 };
 struct TCharacter{
     int moviment; //the direction
@@ -30,35 +31,37 @@ struct TCharacter{
 };
 
 void enemies_spawn(struct TCharacter enemy[], int *enemy_index){
-    switch(rand() % 4){
-	case left:
+    if(rand() % 56 == 7){
+	switch(rand() % 4){
+	    case left:
 		if(!enemy[*enemy_index].is_moving){
 		    enemy[*enemy_index].posy = rand() % LINES;
 		    enemy[*enemy_index].posx = 0;
 		}
-	    break;
-	case top:
+		break;
+	    case top:
 		if(!enemy[*enemy_index].is_moving){
 		    enemy[*enemy_index].posy = 0;
 		    enemy[*enemy_index].posx = rand() % COLS;
 		}
-	    break;
-	case right:
+		break;
+	    case right:
 		if(!enemy[*enemy_index].is_moving){
 		    enemy[*enemy_index].posy = rand() % LINES;
 		    enemy[*enemy_index].posx = COLS-20;
 		}
-	    break;
-	case bottom:
+		break;
+	    case bottom:
 		if(!enemy[*enemy_index].is_moving){
 		    enemy[*enemy_index].posy = LINES-1;
 		    enemy[*enemy_index].posx = rand() % COLS;
 		}
-	    break;
-    }
+		break;
+	}
 
-    enemy[*enemy_index].is_moving = true;
-    (*enemy_index) ++;
+	enemy[*enemy_index].is_moving = true;
+	(*enemy_index) ++;
+    }
 }
 
 /*Actions of  player*/
@@ -88,53 +91,50 @@ void player_actions(struct TCharacter *player){
 	    break;
 
 	case SPACE:
-		break;
+	    break;
     }
 }
 
-void enemies_moviment(struct TCharacter enemy[NENEMIES], int *enemy_index, struct TCharacter player){
+void enemies_moviment(struct TCharacter enemy[NENEMIES], struct TCharacter player){
 
-    for(int move=0; move<NENEMIES; move++)
-	if(player.posx == enemy[move].posx){
-	    if(player.posy > enemy[move].posy)
-		enemy[move].posy++;
-	    else
-		enemy[move].posy--;
-	}
-	else
-	    if(player.posy == enemy[move].posy){
-		if(player.posx > enemy[move].posx)
-		    enemy[move].posx++;
+    for(int move=0; move<NENEMIES; move++){
+	if(enemy[move].is_moving)
+	    if(enemy[move].move >= VEL){
+		if(player.posx == enemy[move].posx){
+		    if(player.posy > enemy[move].posy)
+			enemy[move].posy++;
+		    else
+			enemy[move].posy--;
+		}
 		else
-		    enemy[move].posx--;
+		    if(player.posy == enemy[move].posy){
+			if(player.posx > enemy[move].posx)
+			    enemy[move].posx++;
+			else
+			    enemy[move].posx--;
+		    }
+		    else
+			if(abs(player.posx - enemy[move].posx) < abs(player.posy - enemy[move].posy))
+			    if(player.posx < enemy[move].posx)
+				enemy[move].posx --;
+			    else
+				enemy[move].posx ++;
+
+			else
+			    if(player.posy < enemy[move].posy)
+				enemy[move].posy --;
+			    else
+				enemy[move].posy ++;
+		enemy[move].move = 0;
 	    }
 	    else
-		if(abs(player.posx - enemy[move].posx) < abs(player.posy - enemy[move].posy))
-		    if(player.posx < enemy[move].posx)
-			enemy[move].posx --;
-		    else
-			enemy[move].posx ++;
-
-		else
-		    if(player.posy < enemy[move].posy)
-			enemy[move].posy --;
-		    else
-			enemy[move].posy ++;
-    //else
-//	enemy[move].posy ++;
-    /*
-       for(int move=0; move<NENEMIES; move++){
-       if(enemy[move].posx + 1 == COLS){
-       enemy[move].is_moving = false;
-       }
-       enemy[move].posx += 1;
-       }*/
+		enemy[move].move ++;
+    }
 }
 
 void print_game(struct TCharacter player, struct TCharacter enemy[NENEMIES], int enemy_index){
     clear();
     mvprintw(player.posy, player.posx, "%c", player.look);
-    //printw("%i\n", enemy_index);
     for(int print_enemies = 0; print_enemies < NENEMIES; print_enemies ++)
 	if(enemy[print_enemies].is_moving)
 	    mvprintw(enemy[print_enemies].posy, enemy[print_enemies].posx, "%c", enemy[print_enemies].look);
@@ -147,26 +147,33 @@ void loop_game(){
     int enemy_index;
     struct TCharacter player;
     struct TCharacter enemy[NENEMIES];
+    struct TWeapon gun[5];
 
     player.look = 'P';
     player.posy = player.posx = 10;
 
+    
+    for(int i = 0; i < ; i++){
+    }
+
+
     for(int i = 0; i < NENEMIES; i++){
 	enemy[i].is_moving = false;
 	enemy[i].look = 'M';
+	enemy[i].move = 0;
     }
 
 
     enemy_index = 0;
 
     do{
-	timeout ( 0 );
+	timeout ( 5 );
 	print_game(player, enemy, enemy_index);
 	if(enemy_index < NENEMIES )
 	    enemies_spawn(enemy, &enemy_index);
 	player.moviment = getch();
 	player_actions(&player);
-	enemies_moviment(enemy, &enemy_index, player);
+	enemies_moviment(enemy, player);
     }while(player.moviment != EXIT);
 
 }
