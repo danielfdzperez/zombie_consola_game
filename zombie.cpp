@@ -5,8 +5,20 @@
 #include <string.h>
 
 #define EXIT 27
-#define NENEMIES 5
+#define NENEMIES 100
+#define SPACE 32
 enum TSide {left, top, right, bottom};
+
+struct TPosition{
+    int x;
+    int y;
+};
+
+struct TGun{
+    struct TPosition pos;
+    bool is_moving;
+
+};
 struct TCharacter{
     int moviment; //the direction
     int live; //the live 
@@ -74,16 +86,42 @@ void player_actions(struct TCharacter *player){
 	    if((*player).posy + 1 != LINES)
 		(*player).posy += 1;
 	    break;
+
+	case SPACE:
+		break;
     }
 }
 
 void enemies_moviment(struct TCharacter enemy[NENEMIES], int *enemy_index, struct TCharacter player){
 
- //   for(int move=0; move<NENEMIES; move++)
-//	if(abs(player.posx - enemy[move].posx) < abs(player.posy - enemy[move].posy))
-//	    enemy[move].posx --; 
-//	else
-//	    enemy[move].posy ++;
+    for(int move=0; move<NENEMIES; move++)
+	if(player.posx == enemy[move].posx){
+	    if(player.posy > enemy[move].posy)
+		enemy[move].posy++;
+	    else
+		enemy[move].posy--;
+	}
+	else
+	    if(player.posy == enemy[move].posy){
+		if(player.posx > enemy[move].posx)
+		    enemy[move].posx++;
+		else
+		    enemy[move].posx--;
+	    }
+	    else
+		if(abs(player.posx - enemy[move].posx) < abs(player.posy - enemy[move].posy))
+		    if(player.posx < enemy[move].posx)
+			enemy[move].posx --;
+		    else
+			enemy[move].posx ++;
+
+		else
+		    if(player.posy < enemy[move].posy)
+			enemy[move].posy --;
+		    else
+			enemy[move].posy ++;
+    //else
+//	enemy[move].posy ++;
     /*
        for(int move=0; move<NENEMIES; move++){
        if(enemy[move].posx + 1 == COLS){
@@ -122,7 +160,7 @@ void loop_game(){
     enemy_index = 0;
 
     do{
-	//timeout ( 300 );
+	timeout ( 0 );
 	print_game(player, enemy, enemy_index);
 	if(enemy_index < NENEMIES )
 	    enemies_spawn(enemy, &enemy_index);
