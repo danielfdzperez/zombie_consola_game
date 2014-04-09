@@ -68,38 +68,75 @@ void enemies_moviment(struct TCharacter enemy[NENEMIES], struct TCharacter playe
 
     bool dont_muve = false;
     for(int move=0; move<NENEMIES; move++){
+	dont_muve = false;
 	if(enemy[move].is_moving)
 	    if(enemy[move].move >= VEL){
 		if(player.posx == enemy[move].posx){
-		    if(player.posy > enemy[move].posy)
-#ifdef BETA
-			for(int i=0; i<NENEMIES && enemy_position == false; i++)
-			    if(player->posx == enemy[i].posx && player->posy == enemy[i].posy)
-				enemy_position = true;
-#endif
-		    enemy[move].posy++;
-			    else
-				enemy[move].posy--;
+
+		    if(player.posy > enemy[move].posy){
+
+			if(player.posx == enemy[move].posx && player.posy == enemy[move].posy + 1)
+			    dont_muve = true;
+			for(int i=0; i<NENEMIES && dont_muve == false; i++)
+			    if(enemy[i].posx == enemy[move].posx && enemy[i].posy == enemy[move].posy + 1)
+				dont_muve = true;
+
+			if(!dont_muve)
+			    enemy[move].posy++;
+		    }
+
+		    else{
+			if(player.posx == enemy[move].posx && player.posy == enemy[move].posy - 1)
+			    dont_muve = true;
+			for(int i=0; i<NENEMIES && dont_muve == false; i++)
+			    if(enemy[i].posx == enemy[move].posx && enemy[i].posy == enemy[move].posy - 1)
+				dont_muve = true;
+
+			if(!dont_muve)
+			    enemy[move].posy--;
+		    }
 		}
 		else
 		    if(player.posy == enemy[move].posy){
-			if(player.posx > enemy[move].posx)
-			    enemy[move].posx++;
-			else
-			    enemy[move].posx--;
+			if(player.posx > enemy[move].posx){
+			    if(player.posx == enemy[move].posx + 1 && player.posy == enemy[move].posy)
+				dont_muve = true;
+			    for(int i=0; i<NENEMIES && dont_muve == false; i++)
+				if(enemy[i].posx == enemy[move].posx + 1 && enemy[i].posy == enemy[move].posy)
+				    dont_muve = true;
+
+			    if(!dont_muve)
+				enemy[move].posx++;
+			}
+			else{
+			    if(player.posx == enemy[move].posx - 1 && player.posy == enemy[move].posy)
+				dont_muve = true;
+			    for(int i=0; i<NENEMIES && dont_muve == false; i++)
+				if(enemy[i].posx == enemy[move].posx - 1 && enemy[i].posy == enemy[move].posy)
+				    dont_muve = true;
+
+			    if(!dont_muve)
+				enemy[move].posx--;
+			}
+
 		    }
 		    else
 			if(abs(player.posx - enemy[move].posx) < abs(player.posy - enemy[move].posy))
-			    if(player.posx < enemy[move].posx)
+			    if(player.posx < enemy[move].posx){
+
 				enemy[move].posx --;
-			    else
+			    }
+			    else{
 				enemy[move].posx ++;
+			    }
 
 			else
-			    if(player.posy < enemy[move].posy)
+			    if(player.posy < enemy[move].posy){
 				enemy[move].posy --;
-			    else
+			    }
+			    else{
 				enemy[move].posy ++;
+			    }
 		enemy[move].move = 0;
 	    }
 	    else
@@ -114,7 +151,7 @@ void player_actions(struct TCharacter *player, struct TCharacter enemy[]){
     switch(player->moviment){
 
 	case KEY_RIGHT:
-	    if(player->posx + 1 != COLS){
+	    if(player->posx + 1 != COLS-1){
 		for(int i=0; i<NENEMIES && enemy_position == false; i++)
 		    if(player->posx + 1 == enemy[i].posx && player->posy == enemy[i].posy)
 			enemy_position = true;
@@ -144,7 +181,7 @@ void player_actions(struct TCharacter *player, struct TCharacter enemy[]){
 	    break;
 
 	case KEY_DOWN:
-	    if(player->posy + 1 != LINES){
+	    if(player->posy + 1 != LINES-1){
 		for(int i=0; i<NENEMIES && enemy_position == false; i++)
 		    if(player->posx == enemy[i].posx && player->posy + 1 == enemy[i].posy)
 			enemy_position = true;
@@ -157,7 +194,6 @@ void player_actions(struct TCharacter *player, struct TCharacter enemy[]){
 	    break;
     }
 }
-
 
 void print_game(struct TCharacter player, struct TCharacter enemy[NENEMIES], int enemy_index){
     clear();
