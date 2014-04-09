@@ -5,7 +5,7 @@
 #include <string.h>
 
 #define EXIT 27
-#define NENEMIES 100
+#define NENEMIES 1000
 #define SPACE 32
 #define VEL 100
 enum TSide {left, top, right, bottom};
@@ -123,19 +123,38 @@ void enemies_moviment(struct TCharacter enemy[NENEMIES], struct TCharacter playe
 		    else
 			if(abs(player.posx - enemy[move].posx) < abs(player.posy - enemy[move].posy))
 			    if(player.posx < enemy[move].posx){
+				for(int i=0; i<NENEMIES && dont_muve == false; i++)
+				    if(enemy[i].posx == enemy[move].posx - 1 && enemy[i].posy == enemy[move].posy)
+					dont_muve = true;
 
-				enemy[move].posx --;
+				if(!dont_muve)
+				    enemy[move].posx --;
 			    }
 			    else{
-				enemy[move].posx ++;
+				for(int i=0; i<NENEMIES && dont_muve == false; i++)
+				    if(enemy[i].posx == enemy[move].posx + 1 && enemy[i].posy == enemy[move].posy)
+					dont_muve = true;
+
+				if(!dont_muve)
+				    enemy[move].posx ++;
 			    }
 
 			else
 			    if(player.posy < enemy[move].posy){
-				enemy[move].posy --;
+				for(int i=0; i<NENEMIES && dont_muve == false; i++)
+				    if(enemy[i].posx == enemy[move].posx && enemy[i].posy == enemy[move].posy - 1)
+					dont_muve = true;
+
+				if(!dont_muve)
+				    enemy[move].posy --;
 			    }
 			    else{
-				enemy[move].posy ++;
+				for(int i=0; i<NENEMIES && dont_muve == false; i++)
+				    if(enemy[i].posx == enemy[move].posx && enemy[i].posy == enemy[move].posy + 1)
+					dont_muve = true;
+
+				if(!dont_muve)
+				    enemy[move].posy ++;
 			    }
 		enemy[move].move = 0;
 	    }
