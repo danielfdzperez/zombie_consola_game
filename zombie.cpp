@@ -5,7 +5,7 @@
 #include <string.h>
 
 #define EXIT 27
-#define NENEMIES 1000
+#define NENEMIES 10000
 #define SPACE 32
 #define VEL 100
 enum TSide {left, top, right, bottom};
@@ -31,36 +31,72 @@ struct TCharacter{
 };
 
 void enemies_spawn(struct TCharacter enemy[], int *enemy_index){
-    if(rand() % 56 == 7){
+    bool be_born=true;
+    int pos;
+    if(rand() % 56 == 3){
 	switch(rand() % 4){
 	    case left:
 		if(!enemy[*enemy_index].is_moving){
-		    enemy[*enemy_index].posy = rand() % LINES;
-		    enemy[*enemy_index].posx = 0;
+		    pos = rand() % LINES;
+		    for(int i = 0; i < *enemy_index; i++)
+			if(enemy[i].posy == pos && enemy[i].posx == 0){
+			    be_born = false;
+			    break;
+			}
+			else{
+			    enemy[*enemy_index].posy = pos;
+			    enemy[*enemy_index].posx = 0;
+			}
 		}
 		break;
 	    case top:
 		if(!enemy[*enemy_index].is_moving){
-		    enemy[*enemy_index].posy = 0;
-		    enemy[*enemy_index].posx = rand() % COLS;
+		    pos = rand() % COLS;
+		    for(int i = 0; i < *enemy_index; i++)
+			if(enemy[i].posy == 0 && enemy[i].posx == pos){
+			    be_born = false;
+			    break;
+			}
+			else{
+			    enemy[*enemy_index].posy = 0;
+			    enemy[*enemy_index].posx = pos;
+			}
 		}
 		break;
 	    case right:
 		if(!enemy[*enemy_index].is_moving){
-		    enemy[*enemy_index].posy = rand() % LINES;
-		    enemy[*enemy_index].posx = COLS-20;
+		    pos = rand() % LINES;
+		    for(int i = 0; i < *enemy_index; i++)
+			if(enemy[i].posy == pos && enemy[i].posx == COLS-1){
+			    be_born = false;
+			    break;
+			}
+			else{
+			    enemy[*enemy_index].posy = pos;
+			    enemy[*enemy_index].posx = COLS-1;
+			}
 		}
 		break;
 	    case bottom:
 		if(!enemy[*enemy_index].is_moving){
-		    enemy[*enemy_index].posy = LINES-1;
-		    enemy[*enemy_index].posx = rand() % COLS;
+		    pos = rand() % COLS;
+		    for(int i = 0; i < *enemy_index; i++)
+			if(enemy[i].posy == LINES-1 && enemy[i].posx == pos){
+			    be_born = false;
+			    break;
+			}
+			else{
+			    enemy[*enemy_index].posy = LINES-1;
+			    enemy[*enemy_index].posx = pos;
+			}
 		}
 		break;
 	}
 
-	enemy[*enemy_index].is_moving = true;
-	(*enemy_index) ++;
+	if(be_born){
+	    enemy[*enemy_index].is_moving = true;
+	    (*enemy_index) ++;
+	}
     }
 }
 
@@ -221,6 +257,7 @@ void print_game(struct TCharacter player, struct TCharacter enemy[NENEMIES], int
 	if(enemy[print_enemies].is_moving)
 	    mvprintw(enemy[print_enemies].posy, enemy[print_enemies].posx, "%c", enemy[print_enemies].look);
     printw("row = %i col = %i", abs(enemy[0].posy-player.posy), abs(enemy[0].posx-player.posx));
+    mvprintw(LINES/2, COLS/2, "%i", enemy_index);
     refresh();
 
 }
@@ -250,7 +287,7 @@ void loop_game(){
     enemy_index = 0;
 
     do{
-	timeout ( 5 );
+	timeout ( 50 );
 	print_game(player, enemy, enemy_index);
 	if(enemy_index < NENEMIES )
 	    enemies_spawn(enemy, &enemy_index);
