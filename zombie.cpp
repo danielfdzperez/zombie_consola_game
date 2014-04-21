@@ -6,9 +6,9 @@
 #include <stdio_ext.h>
 
 #define EXIT 27
-#define NENEMIES 7
+#define NENEMIES 1000
 #define SPACE 32
-#define VEL 100
+#define SPEED 100
 #define ENEMY 'x'
 #define WEAPONS 2
 enum TSide {left, top, right, bottom};
@@ -122,6 +122,7 @@ void enemies_spawn(struct TCharacter enemy[], int *enemy_index, char **board, st
     bool be_born=false;
     int pos;
     if(rand() % 56 == 3){
+    //if(true){
 	switch(rand() % 4){
 	    case left:
 		if(!enemy[*enemy_index].is_moving){
@@ -181,7 +182,8 @@ void enemy_atack(int *player_life, struct TCharacter *enemy, struct TCharacter p
 }
 
 /*Mejorar IA, cuando las columnas o las filas son menores que el otro va mal*/
-void enemies_moviment(struct TCharacter enemy[NENEMIES], struct TCharacter player, int enemy_index, char **board, int *player_life){
+void enemies_moviment(struct TCharacter enemy[NENEMIES], struct TCharacter player, int enemy_index, char **board, int *player_life, 
+	int speed){
 
     bool attack = false;
     bool dont_muve = false;
@@ -189,7 +191,7 @@ void enemies_moviment(struct TCharacter enemy[NENEMIES], struct TCharacter playe
 	dont_muve = false;
 	attack = false;
 	if(enemy[move].is_moving){
-	    if(enemy[move].move >= VEL){
+	    if(enemy[move].move >= speed){
 		if(player.posx == enemy[move].posx){
 
 		    if(player.posy > enemy[move].posy){
@@ -318,7 +320,7 @@ void bullet_iniciliazitaion(struct TShot *bullet, int player_posy, int player_po
     }
 }
 
-void move_bulets(struct TWeapon guns[WEAPONS], char **board, struct TCharacter enemies[NENEMIES], int enemy_index){
+void move_bulets(struct TWeapon guns[WEAPONS], char **board, struct TCharacter enemies[NENEMIES], int enemy_index, int *dead_enemies){
 
     for(int i = 0; i < WEAPONS; i++)
 	for(int bullet = 0; bullet < guns[i].max_shots; bullet++)
@@ -343,11 +345,13 @@ void move_bulets(struct TWeapon guns[WEAPONS], char **board, struct TCharacter e
 		else
 		    if(board[guns[i].bullets[bullet].pos.y][guns[i].bullets[bullet].pos.x] == ENEMY){
 			for(int  enemy = 0; enemy < enemy_index; enemy++)
-			    if(guns[i].bullets[bullet].pos.y == enemies[enemy].posy && guns[i].bullets[bullet].pos.x == enemies[enemy].posx){
+			    if(guns[i].bullets[bullet].pos.y == enemies[enemy].posy && 
+				    guns[i].bullets[bullet].pos.x == enemies[enemy].posx){
 				guns[i].bullets[bullet].is_moving = false;
 				enemies[enemy].life -= guns[i].live;
 				if(enemies[enemy].life < 1){
 				    enemies[enemy].is_moving = false;
+				    (*dead_enemies) ++;
 				    board[enemies[enemy].posy][enemies[enemy].posx] = 'G';
 				}
 
@@ -359,7 +363,8 @@ void move_bulets(struct TWeapon guns[WEAPONS], char **board, struct TCharacter e
 }
 
 /*Actions of  player*/
-void player_actions(struct TCharacter *player, struct TCharacter enemy[], char **board, struct TWeapon guns[WEAPONS], int enemy_index){
+void player_actions(struct TCharacter *player, struct TCharacter enemy[], char **board, struct TWeapon guns[WEAPONS], int enemy_index,
+	int *dead_enemies){
 
     switch((enum TOrientation) player->orientation){
 	case east:
@@ -422,7 +427,7 @@ void player_actions(struct TCharacter *player, struct TCharacter enemy[], char *
 		    guns[player->selected_weapon].bullets[guns[player->selected_weapon].index].direction = player->orientation;
 		    bullet_iniciliazitaion(&guns[player->selected_weapon].bullets[guns[player->selected_weapon].index], 
 			    player->posy, player->posx);
-		    move_bulets(guns, board, enemy, enemy_index);
+		    move_bulets(guns, board, enemy, enemy_index, dead_enemies);
 		    if(player->selected_weapon != gun)
 			guns[player->selected_weapon].amo --;
 		    if(++guns[player->selected_weapon].index == guns[player->selected_weapon].max_shots)
@@ -456,7 +461,7 @@ void player_actions(struct TCharacter *player, struct TCharacter enemy[], char *
     board[player->posy][player->posx] = player->look;
 }
 
-void print_game(char **board, int tamano_x, int tamano_y, struct TCharacter player, struct TWeapon guns[WEAPONS]){
+void print_game(char **board, int tamano_x, int tamano_y, struct TCharacter player, struct TWeapon guns[WEAPONS], int a, int b){
     erase();
     //clear();
     init_pair(1, COLOR_RED, COLOR_RED);
@@ -496,6 +501,7 @@ void print_game(char **board, int tamano_x, int tamano_y, struct TCharacter play
     mvprintw(5, COLS - 9, "%s", guns[player.selected_weapon].name);
     mvprintw(6, COLS - 9, "Amo %i", guns[player.selected_weapon].amo);
     mvprintw(9, COLS - 9, "Level %i", player.level);
+    mvprintw(10, COLS - 9, "%i %i", a, b);
     refresh();
 }
 
@@ -514,12 +520,13 @@ void initialize_guns(struct TWeapon guns[WEAPONS]){
     guns[rifle].max_amo = 900;
     guns[rifle].max_shots = 15;
     guns[rifle].bullets_per_shot = 5;
-    guns[rifle].live = 3;
+    guns[rifle].live = 7;
     guns[rifle].name = "rifle";
     guns[rifle].bullets = (struct TShot*) malloc(guns[rifle].max_shots * sizeof(struct TShot));
 
     
 }
+
 void reinitialize_guns(struct TWeapon guns[WEAPONS]){
     guns[gun].amo = 999;
     guns[gun].index = 0;
@@ -532,32 +539,23 @@ void reinitialize_guns(struct TWeapon guns[WEAPONS]){
 	guns[rifle].bullets[i].is_moving = false;
 
 }
+
 void loop_game(){
 
 
-    int enemy_index;
+    int enemy_index, dead_enemies, enemy_speed;
     struct TCharacter player;
     struct TCharacter enemy[NENEMIES];
     struct TScreen board_game;
     struct TWeapon guns[WEAPONS];
 
-    player.look = 'O';
-    player.posy = player.posx = 10;
-    player.life = 100;
-    player.orientation = east;
-    player.selected_weapon = gun;
-    player.level = 1;
 
+    player.look = 'O';
+    
     initialize_guns(guns);
 
 
-    //initialize the enemies
-    for(int i = 0; i < NENEMIES; i++){
-	enemy[i].is_moving = false;
-	enemy[i].look = ENEMY;
-	enemy[i].move = 0;
-	enemy[i].life = 50;
-    }
+    
 
 
     //initialize the board_game
@@ -567,22 +565,53 @@ void loop_game(){
 
     board_game.board = initialize(board_game);
 
-    enemy_index = 0;
 
     do{
+	//initialize the enemies
+	for(int i = 0; i < NENEMIES; i++){
+	    enemy[i].is_moving = false;
+	    enemy[i].look = ENEMY;
+	    enemy[i].move = 0;
+	    enemy[i].life = 50;
+	}
+	player.posy = player.posx = 10;
+
+	player.orientation = east;
+	player.selected_weapon = gun;
+
 	reinitialize_guns(guns);
+	enemy_speed = SPEED;
+	dead_enemies = 0;
+	player.life = 100;
+	enemy_index = 0;
+	player.level = 4;
+
+	fill_in(board_game);
 
 	do{
 	    timeout ( 10 );
 	    if(board_game.size_x < COLS-1 || board_game.size_x > COLS-1 || board_game.size_y < LINES || board_game.size_y > LINES)
 		board_game.board = resize(&board_game);
-	    print_game(board_game.board, board_game.size_x, board_game.size_y, player, guns);
-	    if(enemy_index < NENEMIES )
+	    print_game(board_game.board, board_game.size_x, board_game.size_y, player, guns, enemy_index, dead_enemies);
+	    if(enemy_index < NENEMIES && enemy_index < player.level * 3)
 		enemies_spawn(enemy, &enemy_index, board_game.board, board_game);
 	    player.moviment = getch();
-	    player_actions(&player, enemy, board_game.board, guns, enemy_index);
-	    move_bulets(guns, board_game.board, enemy, enemy_index);
-	    enemies_moviment(enemy, player, enemy_index, board_game.board, &player.life);
+	    player_actions(&player, enemy, board_game.board, guns, enemy_index, &dead_enemies);
+	    move_bulets(guns, board_game.board, enemy, enemy_index, &dead_enemies);
+	    enemies_moviment(enemy, player, enemy_index, board_game.board, &player.life, enemy_speed);
+
+	    if(dead_enemies >= player.level * 3 && player.level * 3 < NENEMIES){
+		dead_enemies = 0;
+		player.level ++;
+		enemy_index = 0;
+		if(enemy_speed - player.level * 2 > 20)
+		    enemy_speed -= player.level * 2;
+
+		for(int i=0; i<player.level * 3 && i < NENEMIES; i++){
+		    enemy[i].move = 0;
+		    enemy[i].life = 50 + player.level * 2;
+		}
+	    }
 	}while(player.life > 0 && player.moviment != EXIT);
 
 	clear();
