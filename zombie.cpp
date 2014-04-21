@@ -3,9 +3,10 @@
 #include <time.h>
 #include <ncurses.h>
 #include <string.h>
+#include <stdio_ext.h>
 
 #define EXIT 27
-#define NENEMIES 1000
+#define NENEMIES 1
 #define SPACE 32
 #define VEL 100
 #define ENEMY 'x'
@@ -30,16 +31,19 @@ struct TPosition{
 
 struct TShot{
     struct TPosition pos;
+    int direction; 
     bool is_moving;
 };
 
 struct TWeapon{
     int max_amo;//max amo
+    int amo;
     int max_shots;//number of shots that can be fired
     int bullets_per_shot;
     int live;//live rest the gun
     int index;
     struct TShot *bullets;//number of bullets, the gun can shot
+    const char *name;
 };
 
 struct TCharacter{
@@ -53,6 +57,7 @@ struct TCharacter{
     int attack;//the time needs a zombie to atack
     int orientation;
     int selected_weapon;
+    int level;
 };
 
 void fill_in(struct TScreen board_game){
@@ -167,24 +172,30 @@ void enemies_spawn(struct TCharacter enemy[], int *enemy_index, char **board, st
     }
 }
 
-void enemy_atack(struct TCharacter *player, struct TCharacter enemy[],int enemy_index){
+void enemy_atack(int *player_life, struct TCharacter *enemy){
 
+    (*player_life) --;
 }
-/*Mejorar IA, cuando las columnas o las filas son menores que el otro va mal*/
-void enemies_moviment(struct TCharacter enemy[NENEMIES], struct TCharacter player, int enemy_index, char **board){
 
+/*Mejorar IA, cuando las columnas o las filas son menores que el otro va mal*/
+void enemies_moviment(struct TCharacter enemy[NENEMIES], struct TCharacter player, int enemy_index, char **board, int *player_life){
+
+    bool attack = false;
     bool dont_muve = false;
     for(int move=0; move<enemy_index; move++){//pasa por todos los enemigos hasta el momento
 	dont_muve = false;
-	if(enemy[move].is_moving)
+	attack = false;
+	if(enemy[move].is_moving){
 	    if(enemy[move].move >= VEL){
 		if(player.posx == enemy[move].posx){
 
 		    if(player.posy > enemy[move].posy){
 
-			if(board[enemy[move].posy + 2][enemy[move].posx] == player.look || 
-				board[enemy[move].posy + 1][enemy[move].posx] == player.look)
+			if(board[enemy[move].posy + 1][enemy[move].posx] == '=' || 
+				board[enemy[move].posy + 1][enemy[move].posx] == player.look){
 			    dont_muve = true;
+			    attack = true;
+			}
 			if(board[enemy[move].posy + 1][enemy[move].posx] == ENEMY)
 			    dont_muve = true;
 
@@ -195,9 +206,11 @@ void enemies_moviment(struct TCharacter enemy[NENEMIES], struct TCharacter playe
 		    }
 
 		    else{
-			if(board[enemy[move].posy - 2][enemy[move].posx] == player.look || 
-				board[enemy[move].posy - 1][enemy[move].posx] == player.look)
+			if(board[enemy[move].posy - 1][enemy[move].posx] == '=' || 
+				board[enemy[move].posy - 1][enemy[move].posx] == player.look){
 			    dont_muve = true;
+			    attack = true;;
+			}
 			if(board[enemy[move].posy - 1][enemy[move].posx] == ENEMY)
 			    dont_muve = true;
 
@@ -210,9 +223,11 @@ void enemies_moviment(struct TCharacter enemy[NENEMIES], struct TCharacter playe
 		else
 		    if(player.posy == enemy[move].posy){
 			if(player.posx > enemy[move].posx){
-			    if(board[enemy[move].posy][enemy[move].posx + 2] == player.look ||
-				    board[enemy[move].posy][enemy[move].posx + 1] == player.look )
+			    if(board[enemy[move].posy][enemy[move].posx + 1] == '=' ||
+				    board[enemy[move].posy][enemy[move].posx + 1] == player.look ){
 				dont_muve = true;
+				attack = true;
+			    }
 			    if(board[enemy[move].posy][enemy[move].posx + 1] == ENEMY)
 				dont_muve = true;
 
@@ -222,9 +237,11 @@ void enemies_moviment(struct TCharacter enemy[NENEMIES], struct TCharacter playe
 			    }
 			}
 			else{
-			    if(board[enemy[move].posy][enemy[move].posx - 2] == player.look ||
-				    board[enemy[move].posy][enemy[move].posx - 1] == player.look)
+			    if(board[enemy[move].posy][enemy[move].posx - 1] == '=' ||
+				    board[enemy[move].posy][enemy[move].posx - 1] == player.look){
 				dont_muve = true;
+				attack = true;
+			    }
 			    if(board[enemy[move].posy][enemy[move].posx - 1] == ENEMY)
 				dont_muve = true;
 
@@ -268,14 +285,80 @@ void enemies_moviment(struct TCharacter enemy[NENEMIES], struct TCharacter playe
 	    }
 	    else
 		enemy[move].move ++;
-	board[enemy[move].posy][enemy[move].posx] = enemy[move].look;
+	    board[enemy[move].posy][enemy[move].posx] = enemy[move].look;
+
+	    if(attack)
+		enemy_atack(player_life, &enemy[move]);
+	}
     }
 }
 
-/*Actions of  player*/
-void player_actions(struct TCharacter *player, struct TCharacter enemy[], char **board){
+void bullet_iniciliazitaion(struct TShot *bullet, int player_posy, int player_posx){
 
-    switch(player->orientation){
+    switch((enum TOrientation)bullet->direction){
+	case east:
+	    bullet->pos.y = player_posy;
+	    bullet->pos.x = player_posx + 1;
+	    break;
+	case west:
+	    bullet->pos.y = player_posy;
+	    bullet->pos.x = player_posx - 1;
+	    break;
+	case north:
+	    bullet->pos.y = player_posy - 1;
+	    bullet->pos.x = player_posx;
+	    break;
+	case south:
+	    bullet->pos.y = player_posy + 1;
+	    bullet->pos.x = player_posx;
+	    break;
+    }
+}
+
+void move_bulets(struct TWeapon guns[WEAPONS], char **board, struct TCharacter enemies[NENEMIES], int enemy_index){
+
+    for(int i = 0; i < WEAPONS; i++)
+	for(int bullet = 0; bullet < guns[i].max_shots; bullet++)
+	    if(guns[i].bullets[bullet].is_moving == true){
+		board[guns[i].bullets[bullet].pos.y][guns[i].bullets[bullet].pos.x] = ' ';
+		switch((enum TOrientation) guns[i].bullets[bullet].direction){
+		    case east:
+			guns[i].bullets[bullet].pos.x ++;
+			break;
+		    case west:
+			guns[i].bullets[bullet].pos.x --;
+			break;
+		    case north:
+			guns[i].bullets[bullet].pos.y --;
+			break;
+		    case south:
+			guns[i].bullets[bullet].pos.y ++;
+			break;
+		}
+		if(board[guns[i].bullets[bullet].pos.y][guns[i].bullets[bullet].pos.x] == 'H')
+		    guns[i].bullets[bullet].is_moving = false;
+		else
+		    if(board[guns[i].bullets[bullet].pos.y][guns[i].bullets[bullet].pos.x] == ENEMY){
+			for(int  enemy = 0; enemy < enemy_index; enemy++)
+			    if(guns[i].bullets[bullet].pos.y == enemies[enemy].posy && guns[i].bullets[bullet].pos.x == enemies[enemy].posx){
+				guns[i].bullets[bullet].is_moving = false;
+				enemies[enemy].life -= guns[i].live;
+				if(enemies[enemy].life < 1){
+				    enemies[enemy].is_moving = false;
+				    board[enemies[enemy].posy][enemies[enemy].posx] = 'G';
+				}
+
+			    }
+		    }
+		    else
+			board[guns[i].bullets[bullet].pos.y][guns[i].bullets[bullet].pos.x] = '*';
+	    }
+}
+
+/*Actions of  player*/
+void player_actions(struct TCharacter *player, struct TCharacter enemy[], char **board, struct TWeapon guns[WEAPONS]){
+
+    switch((enum TOrientation) player->orientation){
 	case east:
 	    board[player->posy][player->posx+1] = ' ';
 	    break;
@@ -329,6 +412,15 @@ void player_actions(struct TCharacter *player, struct TCharacter enemy[], char *
 	    break;
 
 	case SPACE:
+	    for(int bullet = 0; bullet < guns[player->selected_weapon].bullets_per_shot; bullet++ )
+		if(!guns[player->selected_weapon].bullets[guns[player->selected_weapon].index].is_moving){
+		    guns[player->selected_weapon].bullets[guns[player->selected_weapon].index].is_moving = true;
+		    guns[player->selected_weapon].bullets[guns[player->selected_weapon].index].direction = player->orientation;
+		    bullet_iniciliazitaion(&guns[player->selected_weapon].bullets[guns[player->selected_weapon].index], 
+			    player->posy, player->posx);
+		    if(++guns[player->selected_weapon].index == guns[player->selected_weapon].max_shots)
+			guns[player->selected_weapon].index = 0;
+		}
 	    break;
 
 	case 'z':
@@ -357,18 +449,51 @@ void player_actions(struct TCharacter *player, struct TCharacter enemy[], char *
     board[player->posy][player->posx] = player->look;
 }
 
-void print_game(struct TCharacter player, struct TCharacter enemy[NENEMIES], int enemy_index, char **tablero, int tamano_x, int tamano_y){
+void print_game(char **board, int tamano_x, int tamano_y, struct TCharacter player, struct TWeapon guns[WEAPONS]){
     erase();
+    //clear();
+    init_pair(1, COLOR_RED, COLOR_RED);
+    init_pair(2, COLOR_YELLOW, COLOR_BLACK);
+    init_pair(3, COLOR_GREEN, COLOR_BLACK);
+    init_pair(4, COLOR_RED, COLOR_BLACK);
     for(int y=0; y<tamano_y; y++){
 	for(int x=0; x<tamano_x; x++)
-	    printw("%c",tablero[y][x]);
+	    switch(board[y][x]){
+		case 'H':
+		    attron(COLOR_PAIR(1));
+		    printw("%c",board[y][x]);
+		    attroff(COLOR_PAIR(1));
+		    break;
+		case 'O':
+		    attron(COLOR_PAIR(2));
+		    printw("%c",board[y][x]);
+		    attroff(COLOR_PAIR(2));
+		    break;
+		case 'x':
+		    attron(COLOR_PAIR(3));
+		    printw("%c",board[y][x]);
+		    attroff(COLOR_PAIR(3));
+		    break;
+		case 'G':
+		    attron(COLOR_PAIR(4));
+		    printw("%c",board[y][x]);
+		    attroff(COLOR_PAIR(4));
+		    break;
+		default:
+		    printw("%c",board[y][x]);
+	    }
 	printw("\n");
     }
-    //mvprintw(5, 10, "%i L%i C%i", enemy_index, LINES, COLS);
-    mvprintw(5, 10, "%i", player.selected_weapon);
+    mvprintw(2, COLS - 9, "Life %i", player.life);
+    mvprintw(4, COLS - 9, "Weapon");
+    mvprintw(5, COLS - 9, "%s", guns[player.selected_weapon].name);
+    mvprintw(6, COLS - 9, "Amo %i", guns[player.selected_weapon].amo);
+    mvprintw(9, COLS - 9, "Level %i", player.level);
     refresh();
 }
+
 void loop_game(){
+
 
     int enemy_index;
     struct TCharacter player;
@@ -381,13 +506,16 @@ void loop_game(){
     player.life = 100;
     player.orientation = east;
     player.selected_weapon = gun;
+    player.level = 1;
 
     //initialize the gun
     guns[gun].max_amo = 9;
+    guns[gun].amo = 999;
     guns[gun].max_shots = 5;
     guns[gun].bullets_per_shot = 1;
     guns[gun].live = 5;
     guns[gun].index = 0;
+    guns[gun].name = "gun";
     guns[gun].bullets = (struct TShot*) malloc(guns[gun].max_shots * sizeof(struct TShot));
 
 
@@ -402,6 +530,7 @@ void loop_game(){
 	enemy[i].life = 50;
     }
 
+
     //initialize the board_game
     board_game.max_x = board_game.size_x = COLS - 1;
     board_game.max_y = board_game.size_y = LINES;
@@ -412,18 +541,28 @@ void loop_game(){
     enemy_index = 0;
 
     do{
-	timeout ( 5 );
-	if(board_game.size_x < COLS-1 || board_game.size_x > COLS-1 || board_game.size_y < LINES || board_game.size_y > LINES)
-	    board_game.board = resize(&board_game);
-	print_game(player, enemy, enemy_index, board_game.board, board_game.size_x, board_game.size_y);
-	if(enemy_index < NENEMIES )
-	    enemies_spawn(enemy, &enemy_index, board_game.board, board_game);
-	player.moviment = getch();
-	player_actions(&player, enemy, board_game.board);
-	enemies_moviment(enemy, player, enemy_index, board_game.board);
-	//enemy_atack(&player, enemy, enemy_index);
 
-    }while(player.moviment != EXIT);
+	do{
+	    timeout ( 10 );
+	    if(board_game.size_x < COLS-1 || board_game.size_x > COLS-1 || board_game.size_y < LINES || board_game.size_y > LINES)
+		board_game.board = resize(&board_game);
+	    print_game(board_game.board, board_game.size_x, board_game.size_y, player, guns);
+	    if(enemy_index < NENEMIES )
+		enemies_spawn(enemy, &enemy_index, board_game.board, board_game);
+	    player.moviment = getch();
+	    player_actions(&player, enemy, board_game.board, guns);
+	    move_bulets(guns, board_game.board, enemy, enemy_index);
+	    enemies_moviment(enemy, player, enemy_index, board_game.board, &player.life);
+	}while(player.life > 0 && player.moviment != EXIT);
+
+	clear();
+	mvprintw(LINES/2, COLS/2, "Play again? ");
+	refresh();
+
+	__fpurge(stdin);
+	player.moviment = getchar();
+	__fpurge(stdin);
+    }while(player.moviment != EXIT && player.moviment != 'n');
 
     for(int i = 0; i<board_game.size_y; i++)
 	free(board_game.board[i]);
