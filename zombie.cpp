@@ -353,6 +353,7 @@ void move_bulets(struct TWeapon guns[WEAPONS], char **board, struct TCharacter e
 				    enemies[enemy].is_moving = false;
 				    (*dead_enemies) ++;
 				    board[enemies[enemy].posy][enemies[enemy].posx] = 'G';
+				    enemies[enemy].posy = enemies[enemy].posx = 0;
 				}
 
 			    }
@@ -554,10 +555,6 @@ void loop_game(){
     
     initialize_guns(guns);
 
-
-    
-
-
     //initialize the board_game
     board_game.max_x = board_game.size_x = COLS - 1;
     board_game.max_y = board_game.size_y = LINES;
@@ -584,7 +581,7 @@ void loop_game(){
 	dead_enemies = 0;
 	player.life = 100;
 	enemy_index = 0;
-	player.level = 4;
+	player.level = 1;
 
 	fill_in(board_game);
 
@@ -600,17 +597,18 @@ void loop_game(){
 	    move_bulets(guns, board_game.board, enemy, enemy_index, &dead_enemies);
 	    enemies_moviment(enemy, player, enemy_index, board_game.board, &player.life, enemy_speed);
 
-	    if(dead_enemies >= player.level * 3 && player.level * 3 < NENEMIES){
+	    if(dead_enemies >= player.level * 3 || dead_enemies >= NENEMIES){
 		dead_enemies = 0;
 		player.level ++;
 		enemy_index = 0;
-		if(enemy_speed - player.level * 2 > 20)
-		    enemy_speed -= player.level * 2;
+		if(enemy_speed - 5 > 20)
+		    enemy_speed -= 5;
 
 		for(int i=0; i<player.level * 3 && i < NENEMIES; i++){
 		    enemy[i].move = 0;
 		    enemy[i].life = 50 + player.level * 2;
 		}
+
 	    }
 	}while(player.life > 0 && player.moviment != EXIT);
 
