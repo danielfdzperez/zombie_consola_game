@@ -130,7 +130,7 @@ char ** initialize(struct TScreen board_game){
 
 }
 
-/*to do: change board to board_game.board*/
+/*todo: change board to board_game.board*/
 void enemies_spawn(struct TCharacter enemy[], int *enemy_index, char **board, struct TScreen board_game){
     bool be_born=false;
     int pos;
@@ -178,7 +178,7 @@ void enemies_spawn(struct TCharacter enemy[], int *enemy_index, char **board, st
 		}
 		break;
 	}
-	if(true){
+	if(rand() % 37 == 8){
 	    enemy[*enemy_index].have_a_gift = true;
 	    switch((enum TGift) rand() % 2){
 		case life:
@@ -395,6 +395,15 @@ void move_bulets(struct TWeapon guns[WEAPONS], char **board, struct TCharacter e
 	    }
 }
 
+void more_amo(struct TWeapon guns[WEAPONS]){
+    int weapon = rand() % (WEAPONS-1) + 1;
+    guns[weapon].ammo += 100;
+}
+
+void more_life(int *life){
+    *life += 10;
+}
+
 /*Actions of  player*/
 void player_actions(struct TCharacter *player, struct TCharacter enemy[], char **board, struct TWeapon guns[WEAPONS], 
 	int enemy_index,int *dead_enemies){
@@ -419,6 +428,10 @@ void player_actions(struct TCharacter *player, struct TCharacter enemy[], char *
 	case KEY_RIGHT:
 	    if(board[player->posy][player->posx + 2] != 'H' && board[player->posy][player->posx + 2] != ENEMY &&
 		    board[player->posy][player->posx + 1] != ENEMY){
+		if(board[player->posy][player->posx + 2] == 'A')
+		    more_amo(guns);
+		if(board[player->posy][player->posx + 2] == '+')
+		    more_life(&player->life);
 		board[player->posy][player->posx] = ' ';
 		player->posx ++;
 		player->orientation = east;
@@ -428,6 +441,10 @@ void player_actions(struct TCharacter *player, struct TCharacter enemy[], char *
 	case KEY_LEFT:
 	    if(board[player->posy][player->posx - 2] != 'H' && board[player->posy][player->posx - 2] != ENEMY &&
 		    board[player->posy][player->posx - 1] != ENEMY){
+                if(board[player->posy][player->posx - 2] == 'A')
+		    more_amo(guns);
+		if(board[player->posy][player->posx - 2] == '+')
+		    more_life(&player->life);
 		board[player->posy][player->posx] = ' ';
 		player->posx --;
 		player->orientation = west;
@@ -437,6 +454,10 @@ void player_actions(struct TCharacter *player, struct TCharacter enemy[], char *
 	case KEY_UP:
 	    if(board[player->posy - 2][player->posx] != 'H' && board[player->posy - 2][player->posx] != ENEMY &&
 		    board[player->posy - 1][player->posx] != ENEMY){
+                if(board[player->posy - 2][player->posx] == 'A')
+		    more_amo(guns);
+		if(board[player->posy - 2][player->posx] == '+')
+		    more_life(&player->life);
 		board[player->posy][player->posx] = ' ';
 		player->posy --;
 		player->orientation = north;
@@ -446,6 +467,10 @@ void player_actions(struct TCharacter *player, struct TCharacter enemy[], char *
 	case KEY_DOWN:
 	    if(board[player->posy + 2][player->posx] != 'H' && board[player->posy + 2][player->posx] != ENEMY &&
 		    board[player->posy + 1][player->posx] != ENEMY){
+                if(board[player->posy + 2][player->posx] == 'A')
+		    more_amo(guns);
+		if(board[player->posy + 2][player->posx] == '+')
+		    more_life(&player->life);
 		board[player->posy][player->posx] = ' ';
 		player->posy += 1;
 		player->orientation = south;
